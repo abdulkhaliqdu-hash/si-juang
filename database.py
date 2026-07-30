@@ -1,6 +1,8 @@
 import hashlib
 import os
+import secrets
 import sqlite3
+import string
 from sqlite3 import Connection
 from typing import List, Optional, Dict
 
@@ -22,9 +24,22 @@ def get_connection() -> Connection:
     return conn
 
 
+def _generate_random_password(length: int = 16) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
 def create_default_users(cursor) -> None:
-    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
-    operator_password = os.environ.get("OPERATOR_PASSWORD", "gampong123")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+    if not admin_password:
+        admin_password = _generate_random_password()
+        print(f"[!] ADMIN_PASSWORD tidak diatur. Password random: {admin_password}")
+
+    operator_password = os.environ.get("OPERATOR_PASSWORD")
+    if not operator_password:
+        operator_password = _generate_random_password()
+        print(f"[!] OPERATOR_PASSWORD tidak diatur. Password random: {operator_password}")
+
     users = [
         ("admin", hash_password(admin_password), "kecamatan", "Admin Kecamatan", None, None, None, None, None),
         ("operator", hash_password(operator_password), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
