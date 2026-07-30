@@ -19,9 +19,11 @@ def get_connection() -> Connection:
 
 
 def create_default_users(cursor) -> None:
+    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+    operator_password = os.environ.get("OPERATOR_PASSWORD", "gampong123")
     users = [
-        ("admin", hash_password("admin123"), "kecamatan", "Admin Kecamatan", None, None, None, None, None),
-        ("operator", hash_password("gampong123"), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
+        ("admin", hash_password(admin_password), "kecamatan", "Admin Kecamatan", None, None, None, None, None),
+        ("operator", hash_password(operator_password), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
     ]
     for username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path in users:
         cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
