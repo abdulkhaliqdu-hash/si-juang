@@ -4,6 +4,10 @@ import sqlite3
 from sqlite3 import Connection
 from typing import List, Optional, Dict
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 DB_FILE = "sijuang.db"
 
 

@@ -3,3 +3,4 @@ uploads/
 tte_docs/
 __pycache__/
 .streamlit/
+.env
