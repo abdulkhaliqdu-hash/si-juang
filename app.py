@@ -1,7 +1,10 @@
+import csv
+import io
 import os
 import urllib.parse
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 import database
@@ -130,6 +133,27 @@ def render_operator_registration() -> None:
             st.error(f"Gagal mendaftarkan operator: {exc}")
 
 
+def render_change_password() -> None:
+    with st.expander("🔑 Ganti Password"):
+        with st.form("form_ganti_password", clear_on_submit=True):
+            old_pw = st.text_input("Password Lama", type="password")
+            new_pw = st.text_input("Password Baru", type="password")
+            confirm_pw = st.text_input("Konfirmasi Password Baru", type="password")
+            submit_pw = st.form_submit_button("Ganti Password")
+        if submit_pw:
+            if not old_pw or not new_pw or not confirm_pw:
+                st.error("Lengkapi semua kolom password.")
+            elif new_pw != confirm_pw:
+                st.error("Password baru dan konfirmasi tidak cocok.")
+            elif len(new_pw) < 6:
+                st.error("Password baru minimal 6 karakter.")
+            else:
+                if database.change_password(st.session_state.user["username"], old_pw, new_pw):
+                    st.success("Password berhasil diganti.")
+                else:
+                    st.error("Password lama salah.")
+
+
 def render_profile_tab() -> None:
     st.header("👤 Profil Pengguna")
     user = database.get_user_by_username(st.session_state.user["username"])
@@ -138,7 +162,7 @@ def render_profile_tab() -> None:
         return
 
     st.write(f"**Username:** {user['username']}")
-    st.write(f"**Role:** {user['role']}")
+    st.write(f"**Role:** {USER_ROLES.get(user['role'], user['role'])}")
     if user.get("photo_path"):
         st.image(user["photo_path"], width=180)
 
@@ -159,16 +183,21 @@ def render_profile_tab() -> None:
                 f.write(photo_file.getbuffer())
             photo_path = str(photo_path)
 
-        database.update_user_profile(
-            username=user["username"],
-            display_name=display_name,
-            nama_keuchik=nama_keuchik,
-            no_wa=no_wa,
-            email=email,
-            photo_path=photo_path,
-        )
-        st.success("Profil berhasil diperbarui.")
-        st.rerun()
+        try:
+            database.update_user_profile(
+                username=user["username"],
+                display_name=display_name,
+                nama_keuchik=nama_keuchik,
+                no_wa=no_wa,
+                email=email,
+                photo_path=photo_path,
+            )
+            st.success("Profil berhasil diperbarui.")
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Gagal memperbarui profil: {exc}")
+
+    render_change_password()
 
 
 def render_leaderboard_tab() -> None:

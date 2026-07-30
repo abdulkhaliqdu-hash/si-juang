@@ -1,26 +1,34 @@
-import hashlib
 import os
 import secrets
 import sqlite3
 import string
+from datetime import datetime, timedelta
+from pathlib import Path
 from sqlite3 import Connection
 from typing import List, Optional, Dict
 
+import bcrypt
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_FILE = "sijuang.db"
+BASE_DIR = Path(__file__).resolve().parent
+DB_FILE = str(BASE_DIR / "sijuang.db")
 
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
 
 
 def get_connection() -> Connection:
-    os.makedirs(os.path.dirname(DB_FILE) or ".", exist_ok=True)
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
 
@@ -202,9 +210,92 @@ def verify_user(username: str, password: str) -> Optional[Dict]:
         row = cursor.fetchone()
         if row is None:
             return None
-        if row["password_hash"] != hash_password(password):
+        if not verify_password(password, row["password_hash"]):
             return None
         return dict(row)
+
+
+def change_password(username: str, old_password: str, new_password: str) -> bool:
+    """Change user password. Returns True if successful, False if old password is wrong."""
+    user = verify_user(username, old_password)
+    if not user:
+        return False
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?",
+            (hash_password(new_password), username),
+        )
+        conn.commit()
+        return True
+
+
+def get_permohonan_by_gampong(gampong: str, status: Optional[str] = None) -> List[Dict]:
+    """Get permohonan filtered by gampong, optionally by status."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        if status:
+            cursor.execute(
+                "SELECT * FROM permohonan WHERE asal_gampong = ? AND status = ? ORDER BY waktu_pengajuan DESC",
+                (gampong, status),
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM permohonan WHERE asal_gampong = ? ORDER BY waktu_pengajuan DESC",
+                (gampong,),
+            )
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_dashboard_stats() -> Dict[str, object]:
+    """Get aggregate statistics for dashboard."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) as total FROM permohonan")
+        total = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) as total FROM permohonan WHERE status = 'Menunggu Verifikasi'")
+        menunggu = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) as total FROM permohonan WHERE status = 'Proses Srikandi (TTE Pimpinan)'")
+        proses_srikandi = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) as total FROM permohonan WHERE status = 'Selesai (TTE Terbit)'")
+        selesai = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) as total FROM permohonan WHERE status LIKE 'Ditolak%'")
+        ditolak = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) as total FROM feedback")
+        total_feedback = cursor.fetchone()["total"]
+
+        # Permohonan per bulan (6 bulan terakhir)
+        cursor.execute("""
+            SELECT strftime('%Y-%m', waktu_pengajuan) as bulan, COUNT(*) as jumlah
+            FROM permohonan
+            WHERE waktu_pengajuan >= date('now', '-6 months')
+            GROUP BY bulan ORDER BY bulan
+        """)
+        permohonan_per_bulan = [dict(row) for row in cursor.fetchall()]
+
+        # Permohonan per jenis surat
+        cursor.execute("""
+            SELECT jenis_surat, COUNT(*) as jumlah
+            FROM permohonan GROUP BY jenis_surat ORDER BY jumlah DESC
+        """)
+        per_jenis_surat = [dict(row) for row in cursor.fetchall()]
+
+        return {
+            "total_permohonan": total,
+            "menunggu_verifikasi": menunggu,
+            "proses_srikandi": proses_srikandi,
+            "selesai_tte": selesai,
+            "ditolak": ditolak,
+            "total_feedback": total_feedback,
+            "permohonan_per_bulan": permohonan_per_bulan,
+            "per_jenis_surat": per_jenis_surat,
+        }
 
 
 def get_user_by_username(username: str) -> Optional[Dict]:
