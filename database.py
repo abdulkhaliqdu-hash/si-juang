@@ -1,5 +1,4 @@
 import hashlib
-import hashlib
 import os
 import sqlite3
 from sqlite3 import Connection
@@ -12,59 +11,30 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
-def create_default_users(cursor) -> None:
-    default_users = [
-        ("admin", hash_password("admin123"), "kecamatan", "Super Admin Kecamatan", None, None, None, None, None),
-        ("operator", hash_password("gampong123"), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
-    ]
-    for username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path in default_users:
-        cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
-        if cursor.fetchone() is None:
-            cursor.execute(
-                "INSERT INTO users (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path),
-            )
+def get_connection() -> Connection:
     os.makedirs(os.path.dirname(DB_FILE) or ".", exist_ok=True)
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
-
-
 def create_default_users(cursor) -> None:
     users = [
-        ("admin", hash_password("admin123"), "kecamatan", "Admin Kecamatan"),
-        ("operator", hash_password("gampong123"), "gampong", "Operator Gampong"),
+        ("admin", hash_password("admin123"), "kecamatan", "Admin Kecamatan", None, None, None, None, None),
+        ("operator", hash_password("gampong123"), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
     ]
-    for username, password_hash, role, display_name in users:
-        cursor.execute(
-            "SELECT 1 FROM users WHERE username = ?",
-            (username,),
-        )
+    for username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path in users:
+        cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
         if cursor.fetchone() is None:
             cursor.execute(
-                "INSERT INTO users (username, password_hash, role, display_name) VALUES (?, ?, ?, ?)",
-                (username, password_hash, role, display_name),
+                "INSERT INTO users (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path),
             )
 
 
 def init_db() -> None:
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL,
-                role TEXT NOT NULL,
-                display_name TEXT NOT NULL
-            )
-            """
-        )
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS users (

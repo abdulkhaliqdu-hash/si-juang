@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 from pathlib import Path
 
 import streamlit as st
@@ -67,7 +68,7 @@ def render_login() -> bool:
         if st.sidebar.button("Logout"):
             st.session_state.logged_in = False
             st.session_state.user = None
-            st.experimental_rerun()
+            st.rerun()
         return True
 
     st.sidebar.title("Login SI-JUANG")
@@ -80,7 +81,7 @@ def render_login() -> bool:
         if user:
             st.session_state.logged_in = True
             st.session_state.user = user
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.sidebar.error("Username atau password salah.")
     return False
@@ -167,7 +168,7 @@ def render_profile_tab() -> None:
             photo_path=photo_path,
         )
         st.success("Profil berhasil diperbarui.")
-        st.experimental_rerun()
+        st.rerun()
 
 
 def render_leaderboard_tab() -> None:
@@ -289,7 +290,7 @@ def render_meja_pelayanan_tab() -> None:
                     if st.button("ACC & Forward ke Srikandi", key=f"acc_{item['id']}"):
                         database.update_status_srikandi(item['id'])
                         st.success("Permohonan berhasil diteruskan ke proses Srikandi.")
-                        st.experimental_rerun()
+                        st.rerun()
 
                     with st.form(key=f"tolak_form_{item['id']}"):
                         alasan = st.text_area("Alasan Penolakan", placeholder="Contoh: Berkas KTP tidak jelas / Syarat kurang")
@@ -300,7 +301,7 @@ def render_meja_pelayanan_tab() -> None:
                             else:
                                 database.update_status_ditolak(item['id'], alasan.strip())
                                 st.success("Permohonan ditolak dengan alasan yang tercatat.")
-                                st.experimental_rerun()
+                                st.rerun()
         else:
             st.info("Tidak ada permohonan yang menunggu verifikasi saat ini.")
 
@@ -333,12 +334,12 @@ def render_meja_pelayanan_tab() -> None:
                                 f"Permohonan ID: {item['id']}"
                             )
                             wa_link = (
-                                f"https://wa.me/{nomor_wa}?text={st.experimental_singleton(lambda: wa_text).replace(' ', '%20')}"
+                                f"https://wa.me/{nomor_wa}?text={urllib.parse.quote(wa_text)}"
                             )
                             st.success("File TTE berhasil diunggah dan status diperbarui.")
                             st.write("Link WhatsApp untuk pengiriman ke Gampong:")
                             st.markdown(f"[Kirim ke WA Operator/Keuchik]({wa_link})")
-                            st.experimental_rerun()
+                            st.rerun()
         else:
             st.info("Tidak ada permohonan yang sedang diproses oleh Srikandi saat ini.")
 
@@ -416,7 +417,7 @@ def main() -> None:
     st.sidebar.markdown(f"**Role:** {USER_ROLES.get(user_role, user_role)}")
 
     if user_role == "gampong":
-        tabs = st.tabs(["🏢 Loket Gampong", "� Profil Saya", "💬 Feedback & Evaluasi Pelayanan", "ℹ️ Tentang SI-JUANG"])
+        tabs = st.tabs(["🏢 Loket Gampong", "👤 Profil Saya", "💬 Feedback & Evaluasi Pelayanan", "ℹ️ Tentang SI-JUANG"])
         with tabs[0]:
             render_loket_gampong_tab()
         with tabs[1]:
