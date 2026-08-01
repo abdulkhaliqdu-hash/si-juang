@@ -37,6 +37,29 @@ def _generate_random_password(length: int = 16) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
+def _ensure_users_schema(cursor) -> None:
+    cursor.execute("PRAGMA table_info(users)")
+    columns = {row[1] for row in cursor.fetchall()}
+
+    required_columns = {
+        "username": "TEXT NOT NULL UNIQUE",
+        "password_hash": "TEXT NOT NULL",
+        "role": "TEXT NOT NULL",
+        "display_name": "TEXT NOT NULL",
+        "nama_gampong": "TEXT",
+        "nama_keuchik": "TEXT",
+        "no_wa": "TEXT",
+        "email": "TEXT",
+        "photo_path": "TEXT",
+        "created_at": "DATETIME DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "DATETIME DEFAULT CURRENT_TIMESTAMP",
+    }
+
+    for column_name, column_type in required_columns.items():
+        if column_name not in columns:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}")
+
+
 def create_default_users(cursor) -> None:
     admin_password = os.environ.get("ADMIN_PASSWORD")
     if not admin_password:
@@ -82,6 +105,7 @@ def init_db() -> None:
             )
             """
         )
+        _ensure_users_schema(cursor)
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS permohonan (
