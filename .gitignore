@@ -1,6 +1,36 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# env
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# python tools
+__pycache__/
+*.pyc
+.venv/
+tools/out/
+
+# legacy streamlit artefak
 sijuang.db
 uploads/
 tte_docs/
-__pycache__/
 .streamlit/
-.env
+
+# os / editor
+.DS_Store
+Thumbs.db
