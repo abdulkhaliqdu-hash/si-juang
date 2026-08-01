@@ -220,3 +220,11 @@ def handler(event, context):
     # Fallback 404
     return error_response(404, f"Route {method} {path} tidak ditemukan.")
 
+
+# Compatibility alias for Vercel's Python serverless function detector.
+def app(event, context=None):
+    return handler(event, context)
+
+
+application = app
+
