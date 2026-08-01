@@ -74,11 +74,11 @@ def create_default_users(cursor) -> None:
         print(f"[!] OPERATOR_PASSWORD tidak diatur. Password random: {operator_password}")
 
     users = [
-        (admin_username, hash_password(admin_password), "kecamatan", "Admin Kecamatan", None, None, None, None, None),
-        (operator_username, hash_password(operator_password), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
+        ("kecamatan", admin_username, hash_password(admin_password), "Admin Kecamatan", None, None, None, None, None),
+        ("gampong", operator_username, hash_password(operator_password), "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
     ]
-    for username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path in users:
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    for role, username, password_hash, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path in users:
+        cursor.execute("SELECT id FROM users WHERE role = ? ORDER BY id LIMIT 1", (role,))
         existing = cursor.fetchone()
         if existing is None:
             cursor.execute(
@@ -87,8 +87,8 @@ def create_default_users(cursor) -> None:
             )
         else:
             cursor.execute(
-                "UPDATE users SET password_hash = ?, role = ?, display_name = ?, nama_gampong = ?, nama_keuchik = ?, no_wa = ?, email = ?, photo_path = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?",
-                (password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path, username),
+                "UPDATE users SET username = ?, password_hash = ?, display_name = ?, nama_gampong = ?, nama_keuchik = ?, no_wa = ?, email = ?, photo_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (username, password_hash, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path, existing["id"]),
             )
 
 
