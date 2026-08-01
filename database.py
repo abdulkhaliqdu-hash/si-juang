@@ -61,26 +61,34 @@ def _ensure_users_schema(cursor) -> None:
 
 
 def create_default_users(cursor) -> None:
+    admin_username = os.environ.get("ADMIN_USERNAME", "admin")
     admin_password = os.environ.get("ADMIN_PASSWORD")
     if not admin_password:
         admin_password = _generate_random_password()
         print(f"[!] ADMIN_PASSWORD tidak diatur. Password random: {admin_password}")
 
+    operator_username = os.environ.get("OPERATOR_USERNAME", "operator")
     operator_password = os.environ.get("OPERATOR_PASSWORD")
     if not operator_password:
         operator_password = _generate_random_password()
         print(f"[!] OPERATOR_PASSWORD tidak diatur. Password random: {operator_password}")
 
     users = [
-        ("admin", hash_password(admin_password), "kecamatan", "Admin Kecamatan", None, None, None, None, None),
-        ("operator", hash_password(operator_password), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
+        (admin_username, hash_password(admin_password), "kecamatan", "Admin Kecamatan", None, None, None, None, None),
+        (operator_username, hash_password(operator_password), "gampong", "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
     ]
     for username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path in users:
-        cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
-        if cursor.fetchone() is None:
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        existing = cursor.fetchone()
+        if existing is None:
             cursor.execute(
                 "INSERT INTO users (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path),
+            )
+        else:
+            cursor.execute(
+                "UPDATE users SET password_hash = ?, role = ?, display_name = ?, nama_gampong = ?, nama_keuchik = ?, no_wa = ?, email = ?, photo_path = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?",
+                (password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path, username),
             )
 
 
