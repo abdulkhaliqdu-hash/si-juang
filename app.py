@@ -44,6 +44,8 @@ GAMPONG_LIST = [
     "Paya Cut",
 ]
 
+DEFAULT_LOGIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+
 JENIS_SURAT_LIST = [
     "SKTM",
     "Surat Rekomendasi Usaha (IUMK)",
@@ -66,12 +68,14 @@ def render_login() -> bool:
         st.session_state.logged_in = False
         st.session_state.user = None
 
-    if st.session_state.logged_in:
+    if not st.session_state.logged_in or st.session_state.user is None:
+        default_user = database.get_user_by_username(DEFAULT_LOGIN_USERNAME)
+        if default_user:
+            st.session_state.user = default_user
+            st.session_state.logged_in = True
+
+    if st.session_state.logged_in and st.session_state.user:
         st.sidebar.success(f"Masuk sebagai {st.session_state.user['display_name']}")
-        if st.sidebar.button("Logout"):
-            st.session_state.logged_in = False
-            st.session_state.user = None
-            st.rerun()
         return True
 
     st.sidebar.title("Login SI-JUANG")

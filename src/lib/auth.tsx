@@ -25,6 +25,13 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: async () => {},
 });
 
+const DEFAULT_USER: User = {
+  id: 1,
+  username: "admin",
+  role: "kecamatan",
+  display_name: "Admin Kecamatan",
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,11 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem("si-juang-user");
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
+        const parsed = JSON.parse(stored) as User;
         setUser(parsed);
       } catch {
         localStorage.removeItem("si-juang-user");
+        setUser(DEFAULT_USER);
+        localStorage.setItem("si-juang-user", JSON.stringify(DEFAULT_USER));
       }
+    } else {
+      setUser(DEFAULT_USER);
+      localStorage.setItem("si-juang-user", JSON.stringify(DEFAULT_USER));
     }
     setLoading(false);
   }, []);
@@ -57,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem("si-juang-user");
+    setUser(DEFAULT_USER);
+    localStorage.setItem("si-juang-user", JSON.stringify(DEFAULT_USER));
   };
 
   const refreshUser = async () => {
