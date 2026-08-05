@@ -56,6 +56,7 @@ def internal_handler(event, context):
     body_str = event.get("body", "")
     query_params = event.get("queryStringParameters") or {}
     body = parse_body(body_str)
+    headers = event.get("headers") or {}
 
     # Handle CORS preflight
     if method == "OPTIONS":
@@ -186,20 +187,41 @@ def internal_handler(event, context):
         data = database.get_dashboard_stats()
         return json_response(200, data)
 
-    # GET /api/feedback
+    # GET /api/feedback (summary/rekap)
     if path == "/api/feedback" and method == "GET":
         data = database.get_rekap_evaluasi()
         return json_response(200, data)
+
+    # GET /api/feedback/list (public feedback list, anonymized)
+    if path == "/api/feedback/list" and method == "GET":
+        try:
+            data = database.get_feedback_list(include_phone=False, limit=50)
+            return json_response(200, {"data": data})
+        except Exception as e:
+            return error_response(500, str(e))
+
+    # GET /api/feedback/admin (admin-only: includes reporter_phone and identity_confirmed)
+    if path == "/api/feedback/admin" and method == "GET":
+        # Admin authorization: require Authorization: Bearer <SESSION_SECRET>
+        auth = headers.get("authorization") or headers.get("Authorization")
+        if not auth or not auth.startswith("Bearer ") or auth.split(" ", 1)[1] != os.environ.get("SESSION_SECRET"):
+            return error_response(403, "Unauthorized")
+        try:
+            data = database.get_feedback_list(include_phone=True, limit=200)
+            return json_response(200, {"data": data})
+        except Exception as e:
+            return error_response(500, str(e))
 
     # POST /api/feedback
     if path == "/api/feedback" and method == "POST":
         permohonan_id = body.get("permohonan_id")
         tingkat_kepuasan = body.get("tingkat_kepuasan")
         catatan = body.get("catatan", "")
+        reporter_phone = body.get("reporter_phone")
         if not permohonan_id or not tingkat_kepuasan:
             return error_response(400, "Field 'permohonan_id' dan 'tingkat_kepuasan' diperlukan.")
         try:
-            database.tambah_feedback(permohonan_id, tingkat_kepuasan, catatan)
+            database.tambah_feedback(permohonan_id, tingkat_kepuasan, catatan, reporter_phone=reporter_phone)
             return json_response(201, {"success": True})
         except Exception as e:
             return error_response(500, str(e))

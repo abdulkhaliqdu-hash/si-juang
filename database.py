@@ -198,6 +198,8 @@ def init_db() -> None:
                 permohonan_id INTEGER NOT NULL,
                 tingkat_kepuasan TEXT NOT NULL,
                 catatan TEXT,
+                reporter_phone TEXT,
+                identity_confirmed INTEGER DEFAULT 0,
                 waktu_feedback DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (permohonan_id) REFERENCES permohonan(id)
             )
@@ -275,19 +277,39 @@ def tambah_feedback(
     permohonan_id: int,
     tingkat_kepuasan: str,
     catatan: Optional[str],
+    reporter_phone: Optional[str] = None,
 ) -> int:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO feedback
-                (permohonan_id, tingkat_kepuasan, catatan)
-            VALUES (?, ?, ?)
+                (permohonan_id, tingkat_kepuasan, catatan, reporter_phone)
+            VALUES (?, ?, ?, ?)
             """,
-            (permohonan_id, tingkat_kepuasan, catatan),
+            (permohonan_id, tingkat_kepuasan, catatan, reporter_phone),
         )
         conn.commit()
         return cursor.lastrowid
+
+
+def get_feedback_list(include_phone: bool = False, limit: int = 50) -> List[Dict]:
+    """Return recent feedback entries. If include_phone is False, do not expose reporter_phone.
+    This is used for public views (anonymous)."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, permohonan_id, tingkat_kepuasan, catatan, reporter_phone, identity_confirmed, waktu_feedback FROM feedback ORDER BY waktu_feedback DESC LIMIT ?",
+            (limit,)
+        )
+        rows = cursor.fetchall()
+        results = []
+        for row in rows:
+            r = dict(row)
+            if not include_phone:
+                r.pop("reporter_phone", None)
+            results.append(r)
+        return results
 
 
 def verify_user(username: str, password: str) -> Optional[Dict]:
