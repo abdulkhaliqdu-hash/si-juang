@@ -8,7 +8,7 @@ from pathlib import Path
 from sqlite3 import Connection
 from typing import List, Optional, Dict
 
-import bcrypt
+from passlib.hash import pbkdf2_sha256
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,11 +23,14 @@ else:
 
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    return pbkdf2_sha256.hash(password)
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    try:
+        return pbkdf2_sha256.verify(password, password_hash)
+    except Exception:
+        return False
 
 
 def get_connection() -> Connection:
