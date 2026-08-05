@@ -41,7 +41,7 @@ def parse_body(body: Optional[str]) -> dict:
         return {}
 
 
-def handler(event, context):
+def internal_handler(event, context):
     """Vercel Serverless Function handler."""
     path = event.get("path") or event.get("rawPath") or "/"
     # Normalize paths for Vercel rewrites and function destination paths.
@@ -227,6 +227,30 @@ def handler(event, context):
 
     # Fallback 404
     return error_response(404, f"Route {method} {path} tidak ditemukan.")
+
+
+def handler(event, context):
+    """Wrapper around internal_handler that catches exceptions and returns JSON with redacted traceback for debugging."""
+    import traceback
+    try:
+        return internal_handler(event, context)
+    except Exception as e:
+        tb = traceback.format_exc()
+        secrets = [
+            os.environ.get("SUPABASE_SERVICE_ROLE_KEY"),
+            os.environ.get("DATABASE_URL"),
+            os.environ.get("SESSION_SECRET"),
+            os.environ.get("ADMIN_PASSWORD"),
+            os.environ.get("SUPABASE_ANON_KEY"),
+        ]
+        for s in secrets:
+            if s:
+                tb = tb.replace(s, "<REDACTED>")
+        # Log to stderr for platform logs
+        print("Unhandled exception in handler:", file=sys.stderr)
+        print(tb, file=sys.stderr)
+        tb_lines = tb.splitlines()
+        return json_response(500, {"error": "Internal server error", "trace": tb_lines[-10:]})
 
 
 # Compatibility alias for Vercel's Python serverless function detector.
