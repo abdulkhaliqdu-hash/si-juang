@@ -25,33 +25,43 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: async () => {},
 });
 
-const DEFAULT_USER: User = {
-  id: 1,
-  username: "admin",
-  role: "kecamatan",
-  display_name: "Admin Kecamatan",
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem("si-juang-user");
-    if (stored) {
+    if (!stored) {
+      setLoading(false);
+      return;
+    }
+
+    let parsed: User | null = null;
+    try {
+      parsed = JSON.parse(stored) as User;
+    } catch {
+      localStorage.removeItem("si-juang-user");
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    setUser(parsed);
+
+    const validateStoredUser = async () => {
       try {
-        const parsed = JSON.parse(stored) as User;
-        setUser(parsed);
+        const fresh = await getUser(parsed.username);
+        setUser(fresh);
+        localStorage.setItem("si-juang-user", JSON.stringify(fresh));
       } catch {
         localStorage.removeItem("si-juang-user");
-        setUser(DEFAULT_USER);
-        localStorage.setItem("si-juang-user", JSON.stringify(DEFAULT_USER));
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setUser(DEFAULT_USER);
-      localStorage.setItem("si-juang-user", JSON.stringify(DEFAULT_USER));
-    }
-    setLoading(false);
+    };
+
+    validateStoredUser();
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -69,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setUser(DEFAULT_USER);
-    localStorage.setItem("si-juang-user", JSON.stringify(DEFAULT_USER));
+    setUser(null);
+    localStorage.removeItem("si-juang-user");
   };
 
   const refreshUser = async () => {

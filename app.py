@@ -59,6 +59,30 @@ def prepare_directories() -> None:
     TTE_DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# Helper to render download link or download button for a stored file
+def render_file_access(path: str) -> None:
+    """If path is a URL (http/https) show a markdown link. If local file exists, show a download button.
+
+    If neither, just print the path.
+    """
+    if not path:
+        return
+    try:
+        if isinstance(path, str) and path.startswith("http"):
+            st.markdown(f"[Unduh file]({path})")
+            return
+        p = Path(path)
+        if p.exists():
+            with open(p, "rb") as f:
+                data = f.read()
+            st.download_button("Unduh file", data, file_name=p.name)
+            return
+        # fallback: print raw value
+        st.write(path)
+    except Exception as e:
+        st.write(path)
+
+
 def format_status(status: str) -> str:
     return status or "-"
 
@@ -67,12 +91,6 @@ def render_login() -> bool:
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
         st.session_state.user = None
-
-    if not st.session_state.logged_in or st.session_state.user is None:
-        default_user = database.get_user_by_username(DEFAULT_LOGIN_USERNAME)
-        if default_user:
-            st.session_state.user = default_user
-            st.session_state.logged_in = True
 
     if st.session_state.logged_in and st.session_state.user:
         st.sidebar.success(f"Masuk sebagai {st.session_state.user['display_name']}")
@@ -116,10 +134,30 @@ def render_operator_registration() -> None:
 
         photo_path = None
         if photo_file is not None:
-            photo_path = UPLOADS_DIR / f"operator_{username}_{photo_file.name}"
-            with open(photo_path, "wb") as f:
-                f.write(photo_file.getbuffer())
-            photo_path = str(photo_path)
+            file_bytes = photo_file.getbuffer()
+            try:
+                import storage
+
+                if storage.is_r2_configured():
+                    key = f"operator_{username}_{photo_file.name}"
+                    try:
+                        url = storage.upload_bytes(file_bytes, key)
+                        photo_path = url
+                    except Exception:
+                        local_path = UPLOADS_DIR / f"operator_{username}_{photo_file.name}"
+                        with open(local_path, "wb") as f:
+                            f.write(file_bytes)
+                        photo_path = str(local_path)
+                else:
+                    local_path = UPLOADS_DIR / f"operator_{username}_{photo_file.name}"
+                    with open(local_path, "wb") as f:
+                        f.write(file_bytes)
+                    photo_path = str(local_path)
+            except Exception:
+                local_path = UPLOADS_DIR / f"operator_{username}_{photo_file.name}"
+                with open(local_path, "wb") as f:
+                    f.write(file_bytes)
+                photo_path = str(local_path)
 
         try:
             database.add_operator(
@@ -182,10 +220,30 @@ def render_profile_tab() -> None:
     if submit:
         photo_path = user.get("photo_path")
         if photo_file is not None:
-            photo_path = UPLOADS_DIR / f"profile_{user['username']}_{photo_file.name}"
-            with open(photo_path, "wb") as f:
-                f.write(photo_file.getbuffer())
-            photo_path = str(photo_path)
+            file_bytes = photo_file.getbuffer()
+            try:
+                import storage
+
+                if storage.is_r2_configured():
+                    key = f"profile_{user['username']}_{photo_file.name}"
+                    try:
+                        url = storage.upload_bytes(file_bytes, key)
+                        photo_path = url
+                    except Exception:
+                        local_path = UPLOADS_DIR / f"profile_{user['username']}_{photo_file.name}"
+                        with open(local_path, "wb") as f:
+                            f.write(file_bytes)
+                        photo_path = str(local_path)
+                else:
+                    local_path = UPLOADS_DIR / f"profile_{user['username']}_{photo_file.name}"
+                    with open(local_path, "wb") as f:
+                        f.write(file_bytes)
+                    photo_path = str(local_path)
+            except Exception:
+                local_path = UPLOADS_DIR / f"profile_{user['username']}_{photo_file.name}"
+                with open(local_path, "wb") as f:
+                    f.write(file_bytes)
+                photo_path = str(local_path)
 
         try:
             database.update_user_profile(
@@ -254,10 +312,34 @@ def render_loket_gampong_tab() -> None:
             else:
                 file_pengantar_path = None
                 if file_pengantar is not None:
-                    file_name = f"pengantar_{nik}_{file_pengantar.name}"
-                    file_pengantar_path = UPLOADS_DIR / file_name
-                    with open(file_pengantar_path, "wb") as f:
-                        f.write(file_pengantar.getbuffer())
+                    # prefer R2 upload if configured, otherwise save locally
+                    file_bytes = file_pengantar.getbuffer()
+                    try:
+                        import storage
+
+                        if storage.is_r2_configured():
+                            key = f"pengantar_{nik}_{file_pengantar.name}"
+                            try:
+                                url = storage.upload_bytes(file_bytes, key)
+                                file_pengantar_path = url
+                            except Exception:
+                                file_name = f"pengantar_{nik}_{file_pengantar.name}"
+                                local_path = UPLOADS_DIR / file_name
+                                with open(local_path, "wb") as f:
+                                    f.write(file_bytes)
+                                file_pengantar_path = str(local_path)
+                        else:
+                            file_name = f"pengantar_{nik}_{file_pengantar.name}"
+                            local_path = UPLOADS_DIR / file_name
+                            with open(local_path, "wb") as f:
+                                f.write(file_bytes)
+                            file_pengantar_path = str(local_path)
+                    except Exception:
+                        file_name = f"pengantar_{nik}_{file_pengantar.name}"
+                        local_path = UPLOADS_DIR / file_name
+                        with open(local_path, "wb") as f:
+                            f.write(file_bytes)
+                        file_pengantar_path = str(local_path)
 
                 database.tambah_permohonan(
                     nik=nik,
@@ -266,7 +348,7 @@ def render_loket_gampong_tab() -> None:
                     jenis_surat=jenis_surat,
                     keperluan=keperluan,
                     no_wa_gampong=no_wa_gampong,
-                    file_pengantar_path=str(file_pengantar_path) if file_pengantar_path else None,
+                    file_pengantar_path=file_pengantar_path,
                 )
                 st.success("Permohonan berhasil dikirim ke Meja Pelayanan Kecamatan.")
 
@@ -282,7 +364,11 @@ def render_loket_gampong_tab() -> None:
                 if item['status'].startswith("Ditolak") and item['alasan_penolakan']:
                     st.warning(f"Alasan Penolakan: {item['alasan_penolakan']}")
                 if item['file_tte_path']:
-                    st.success(f"File TTE tersedia: {item['file_tte_path']}")
+                    st.success("File TTE tersedia:")
+                    try:
+                        render_file_access(item['file_tte_path'])
+                    except Exception:
+                        st.write(item['file_tte_path'])
     else:
         st.info("Belum ada permohonan yang masuk.")
 
@@ -318,7 +404,11 @@ def render_meja_pelayanan_tab() -> None:
                     st.write(f"**Keperluan:** {item['keperluan']}")
                     st.write(f"**No. WA Gampong:** {item['no_wa_gampong']}")
                     if item['file_pengantar_path']:
-                        st.write(f"**File Pengantar:** {item['file_pengantar_path']}")
+                        st.write("**File Pengantar:**")
+                        try:
+                            render_file_access(item['file_pengantar_path'])
+                        except Exception:
+                            st.write(item['file_pengantar_path'])
 
                     if st.button("ACC & Forward ke Srikandi", key=f"acc_{item['id']}"):
                         database.update_status_srikandi(item['id'])
@@ -354,10 +444,32 @@ def render_meja_pelayanan_tab() -> None:
                         if not file_tte:
                             st.error("Unggah file PDF Surat TTE terlebih dahulu.")
                         else:
-                            tte_path = TTE_DOCS_DIR / f"tte_{item['id']}_{file_tte.name}"
-                            with open(tte_path, "wb") as f:
-                                f.write(file_tte.getbuffer())
-                            database.update_status_selesai_tte(item['id'], str(tte_path))
+                            file_bytes = file_tte.getbuffer()
+                            try:
+                                import storage
+
+                                if storage.is_r2_configured():
+                                    key = f"tte_{item['id']}_{file_tte.name}"
+                                    try:
+                                        url = storage.upload_bytes(file_bytes, key)
+                                        database.update_status_selesai_tte(item['id'], url)
+                                    except Exception:
+                                        # fallback to local storage on upload failure
+                                        tte_path = TTE_DOCS_DIR / f"tte_{item['id']}_{file_tte.name}"
+                                        with open(tte_path, "wb") as f:
+                                            f.write(file_bytes)
+                                        database.update_status_selesai_tte(item['id'], str(tte_path))
+                                else:
+                                    tte_path = TTE_DOCS_DIR / f"tte_{item['id']}_{file_tte.name}"
+                                    with open(tte_path, "wb") as f:
+                                        f.write(file_bytes)
+                                    database.update_status_selesai_tte(item['id'], str(tte_path))
+                            except Exception:
+                                tte_path = TTE_DOCS_DIR / f"tte_{item['id']}_{file_tte.name}"
+                                with open(tte_path, "wb") as f:
+                                    f.write(file_bytes)
+                                database.update_status_selesai_tte(item['id'], str(tte_path))
+
                             nomor_wa = item['no_wa_gampong'].lstrip("+")
                             if nomor_wa.startswith("0"):
                                 nomor_wa = f"62{nomor_wa[1:]}"
@@ -448,6 +560,10 @@ def main() -> None:
 
     user_role = st.session_state.user["role"]
     st.sidebar.markdown(f"**Role:** {USER_ROLES.get(user_role, user_role)}")
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.user = None
+        st.experimental_rerun()
 
     if user_role == "gampong":
         tabs = st.tabs(["🏢 Loket Gampong", "👤 Profil Saya", "💬 Feedback & Evaluasi Pelayanan", "ℹ️ Tentang SI-JUANG"])

@@ -10,8 +10,8 @@ export default function Home() {
 
   useEffect(() => {
     if (loading) return;
-    router.replace("/dashboard");
-  }, [loading, router]);
+    router.replace(user ? "/dashboard" : "/login");
+  }, [loading, router, user]);
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

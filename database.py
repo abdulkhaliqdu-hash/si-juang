@@ -62,33 +62,85 @@ def _ensure_users_schema(cursor) -> None:
 
 def create_default_users(cursor) -> None:
     admin_username = os.environ.get("ADMIN_USERNAME", "admin")
-    admin_password = os.environ.get("ADMIN_PASSWORD")
-    if not admin_password:
-        admin_password = _generate_random_password()
-        print(f"[!] ADMIN_PASSWORD tidak diatur. Password random: {admin_password}")
+    admin_password_env = os.environ.get("ADMIN_PASSWORD")
+    admin_password = admin_password_env if admin_password_env else "admin"
 
     operator_username = os.environ.get("OPERATOR_USERNAME", "operator")
-    operator_password = os.environ.get("OPERATOR_PASSWORD")
-    if not operator_password:
-        operator_password = _generate_random_password()
-        print(f"[!] OPERATOR_PASSWORD tidak diatur. Password random: {operator_password}")
+    operator_password_env = os.environ.get("OPERATOR_PASSWORD")
+    operator_password = operator_password_env if operator_password_env else "operator"
 
-    users = [
-        ("kecamatan", admin_username, hash_password(admin_password), "Admin Kecamatan", None, None, None, None, None),
-        ("gampong", operator_username, hash_password(operator_password), "Operator Gampong", "Bireuen Meunasah Capa", "Keuchik Default", "081234567890", "operator@example.com", None),
-    ]
-    for role, username, password_hash, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path in users:
-        cursor.execute("SELECT id FROM users WHERE role = ? ORDER BY id LIMIT 1", (role,))
-        existing = cursor.fetchone()
-        if existing is None:
+    # Initial admin account should be created only once. Existing users must not be overwritten
+    # unless a new username or password is explicitly configured through environment variables.
+    cursor.execute("SELECT id, username FROM users WHERE role = ? ORDER BY id LIMIT 1", ("kecamatan",))
+    admin_existing = cursor.fetchone()
+    if admin_existing is None:
+        if not admin_password_env:
+            print("[!] ADMIN_PASSWORD tidak diatur. Menggunakan password default: admin")
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                admin_username,
+                hash_password(admin_password),
+                "kecamatan",
+                "Admin Kecamatan",
+                None,
+                None,
+                None,
+                None,
+                None,
+            ),
+        )
+    else:
+        updates = []
+        params = []
+        if admin_username != admin_existing["username"]:
+            updates.append("username = ?")
+            params.append(admin_username)
+        if admin_password_env:
+            updates.append("password_hash = ?")
+            params.append(hash_password(admin_password))
+        if updates:
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            params.append(admin_existing["id"])
             cursor.execute(
-                "INSERT INTO users (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path),
+                f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
+                tuple(params),
             )
-        else:
+
+    cursor.execute("SELECT id, username FROM users WHERE role = ? ORDER BY id LIMIT 1", ("gampong",))
+    operator_existing = cursor.fetchone()
+    if operator_existing is None:
+        if not operator_password_env:
+            print("[!] OPERATOR_PASSWORD tidak diatur. Menggunakan password default: operator")
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                operator_username,
+                hash_password(operator_password),
+                "gampong",
+                "Operator Gampong",
+                "Bireuen Meunasah Capa",
+                "Keuchik Default",
+                "081234567890",
+                "operator@example.com",
+                None,
+            ),
+        )
+    else:
+        updates = []
+        params = []
+        if operator_username != operator_existing["username"]:
+            updates.append("username = ?")
+            params.append(operator_username)
+        if operator_password_env:
+            updates.append("password_hash = ?")
+            params.append(hash_password(operator_password))
+        if updates:
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            params.append(operator_existing["id"])
             cursor.execute(
-                "UPDATE users SET username = ?, password_hash = ?, display_name = ?, nama_gampong = ?, nama_keuchik = ?, no_wa = ?, email = ?, photo_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (username, password_hash, display_name, nama_gampong, nama_keuchik, no_wa, email, photo_path, existing["id"]),
+                f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
+                tuple(params),
             )
 
 
