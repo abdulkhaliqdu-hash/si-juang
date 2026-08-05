@@ -7,6 +7,33 @@ Default credentials for a fresh database are:
 
 The frontend expects the Python backend to be available through `/api` as configured by `vercel.json`.
 
+## Deploy ke Vercel
+
+Untuk menjalankan aplikasi ini di Vercel, set environment variables berikut di dashboard Vercel:
+
+- `DATABASE_FILE=/tmp/sijuang.db`
+  - Wajib jika Anda menggunakan SQLite pada Vercel. Direktori `/tmp` adalah direktori writable di lingkungan serverless Vercel.
+- `ADMIN_USERNAME=admin`
+- `ADMIN_PASSWORD=admin`
+  - Jika tidak diatur, aplikasi akan menggunakan default `admin` / `admin`.
+- `SESSION_SECRET=sebuah_nilai_rahasia_acak`
+  - Tidak wajib untuk login dasar, tetapi direkomendasikan untuk security bila Anda menambahkan session/state handling.
+
+Jika Anda ingin menggunakan Supabase untuk file/storage atau database eksternal, set variabel tambahan:
+
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `SUPABASE_BUCKET`
+
+Atau untuk Cloudflare R2:
+
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+
+> Jika tidak ada env Supabase/R2, aplikasi akan menggunakan SQLite lokal dan penyimpanan file lokal. Perlu dicatat bahwa penyimpanan lokal di Vercel tidak persisten untuk produksi.
+
 Cloudflare R2 (opsional)
 
 Untuk menyimpan file (uploads/TTE) ke Cloudflare R2 gunakan langkah berikut:

@@ -43,7 +43,7 @@ def parse_body(body: Optional[str]) -> dict:
 
 def handler(event, context):
     """Vercel Serverless Function handler."""
-    path = event.get("path", "/") or "/"
+    path = event.get("path") or event.get("rawPath") or "/"
     # Normalize paths for Vercel rewrites and function destination paths.
     # Examples: /api/login -> /login, /api/index.py -> /, /api/index.py/login -> /login
     if path.startswith("/api/index.py"):
