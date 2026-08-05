@@ -21,6 +21,9 @@ export interface Permohonan {
   keperluan: string;
   no_wa_gampong: string;
   file_pengantar_path?: string;
+  drive_link?: string;
+  nama_gampong_pengusul?: string;
+  keterangan?: string;
   waktu_pengajuan: string;
   status: string;
   alasan_penolakan?: string;
@@ -117,6 +120,8 @@ export async function getPermohonan(status?: string, gampong?: string) {
 }
 
 export async function createPermohonan(data: Partial<Permohonan>) {
+  // Ensure jenis_surat is uppercase on client as well
+  if (data.jenis_surat) data.jenis_surat = data.jenis_surat.toUpperCase();
   return request<{ success: boolean; id: number }>("/permohonan", {
     method: "POST",
     body: JSON.stringify(data),
@@ -158,11 +163,12 @@ export async function getFeedback() {
 export async function submitFeedback(
   permohonan_id: number,
   tingkat_kepuasan: string,
-  catatan: string
+  catatan: string,
+  reporter_phone?: string
 ) {
   return request<{ success: boolean }>("/feedback", {
     method: "POST",
-    body: JSON.stringify({ permohonan_id, tingkat_kepuasan, catatan }),
+    body: JSON.stringify({ permohonan_id, tingkat_kepuasan, catatan, reporter_phone }),
   });
 }
 

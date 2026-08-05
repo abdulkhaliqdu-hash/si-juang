@@ -11,11 +11,6 @@ export default function LeaderboardPage() {
   const { user, loading } = useAuth();
   const [data, setData] = useState<{ gampong: string; layanan: number }[]>([]);
 
-  useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-    if (!loading && user && user.role !== "kecamatan") router.replace("/dashboard");
-  }, [user, loading, router]);
-
   const loadData = () => {
     getLeaderboard()
       .then((res) => setData(res.data))
@@ -23,8 +18,8 @@ export default function LeaderboardPage() {
   };
 
   useEffect(() => {
-    if (user && user.role === "kecamatan") loadData();
-  }, [user]);
+    loadData();
+  }, []);
 
   const getIcon = (index: number) => {
     if (index === 0) return <Trophy className="w-6 h-6 text-yellow-500" />;

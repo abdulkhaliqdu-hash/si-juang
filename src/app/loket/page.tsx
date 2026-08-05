@@ -40,21 +40,21 @@ export default function LoketPage() {
   const [jenisSurat, setJenisSurat] = useState(JENIS_SURAT[0]);
   const [keperluan, setKeperluan] = useState("");
   const [noWa, setNoWa] = useState("");
+  const [driveLink, setDriveLink] = useState("");
+  const [namaGampongPengusul, setNamaGampongPengusul] = useState("");
+  const [keterangan, setKeterangan] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Make this page public — do not redirect to login
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [user, loading, router]);
+    loadData();
+  }, []);
 
   const loadData = () => {
     getPermohonan()
       .then((res) => setPermohonan(res.data))
       .catch(() => setError("Gagal memuat data."));
   };
-
-  useEffect(() => {
-    if (user) loadData();
-  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +68,12 @@ export default function LoketPage() {
       setError("Lengkapi semua field wajib.");
       return;
     }
+    // optional: validate drive link is a google drive url if provided
+    if (driveLink && !/https?:\/\/(drive\.google\.com|docs\.google\.com)\/.+/.test(driveLink)) {
+      // allow any url but warn if not a google drive link
+      setError("Link Google Drive tidak valid (harus berasal dari drive.google.com atau docs.google.com). Jika tidak ada, kosongkan field ini.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -75,14 +81,20 @@ export default function LoketPage() {
         nik,
         nama_pemohon: nama,
         asal_gampong: asalGampong,
-        jenis_surat: jenisSurat,
+        jenis_surat: jenisSurat.toUpperCase(),
         keperluan,
         no_wa_gampong: noWa,
+        drive_link: driveLink || undefined,
+        nama_gampong_pengusul: namaGampongPengusul || undefined,
+        keterangan: keterangan || undefined,
       });
       setNik("");
       setNama("");
       setKeperluan("");
       setNoWa("");
+      setDriveLink("");
+      setNamaGampongPengusul("");
+      setKeterangan("");
       loadData();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal mengirim permohonan.");
@@ -200,6 +212,42 @@ export default function LoketPage() {
                 rows={3}
                 placeholder="Jelaskan keperluan permohonan"
                 required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Link Google Drive (opsional)
+              </label>
+              <input
+                type="url"
+                value={driveLink}
+                onChange={(e) => setDriveLink(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="https://drive.google.com/drive/folders/..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nama Gampong Pengusul (opsional)
+              </label>
+              <input
+                type="text"
+                value={namaGampongPengusul}
+                onChange={(e) => setNamaGampongPengusul(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Nama gampong pengusul"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Keterangan (opsional)
+              </label>
+              <input
+                type="text"
+                value={keterangan}
+                onChange={(e) => setKeterangan(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Tambahan keterangan"
               />
             </div>
             <div>

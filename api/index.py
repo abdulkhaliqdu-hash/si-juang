@@ -138,15 +138,20 @@ def internal_handler(event, context):
         for field in required:
             if not body.get(field):
                 return error_response(400, f"Field '{field}' diperlukan.")
+        # Optional new fields: drive_link, nama_gampong_pengusul, keterangan
         try:
+            jenis_surat = body.get("jenis_surat", "").upper()
             permohonan_id = database.tambah_permohonan(
                 nik=body["nik"],
                 nama_pemohon=body["nama_pemohon"],
                 asal_gampong=body["asal_gampong"],
-                jenis_surat=body["jenis_surat"],
+                jenis_surat=jenis_surat,
                 keperluan=body["keperluan"],
                 no_wa_gampong=body["no_wa_gampong"],
                 file_pengantar_path=body.get("file_pengantar_path"),
+                drive_link=body.get("drive_link"),
+                nama_gampong_pengusul=body.get("nama_gampong_pengusul"),
+                keterangan=body.get("keterangan"),
             )
             return json_response(201, {"success": True, "id": permohonan_id})
         except Exception as e:

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
+import CookieBanner from "@/components/CookieBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({
               {children}
             </main>
           </div>
+          <CookieBanner />
         </AuthProvider>
       </body>
     </html>

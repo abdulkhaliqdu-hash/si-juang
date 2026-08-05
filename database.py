@@ -183,6 +183,9 @@ def init_db() -> None:
                 keperluan TEXT NOT NULL,
                 no_wa_gampong TEXT NOT NULL,
                 file_pengantar_path TEXT,
+                drive_link TEXT,
+                nama_gampong_pengusul TEXT,
+                keterangan TEXT,
                 waktu_pengajuan DATETIME DEFAULT CURRENT_TIMESTAMP,
                 status TEXT NOT NULL DEFAULT 'Menunggu Verifikasi',
                 alasan_penolakan TEXT,
@@ -190,6 +193,18 @@ def init_db() -> None:
             )
             """
         )
+        # Ensure permohonan has new columns when upgrading an existing DB
+        cursor.execute("PRAGMA table_info(permohonan)")
+        perm_cols = {row[1] for row in cursor.fetchall()}
+        perm_required = {
+            "drive_link": "TEXT",
+            "nama_gampong_pengusul": "TEXT",
+            "keterangan": "TEXT",
+        }
+        for col, coltype in perm_required.items():
+            if col not in perm_cols:
+                cursor.execute(f"ALTER TABLE permohonan ADD COLUMN {col} {coltype}")
+
         create_default_users(cursor)
         cursor.execute(
             """
@@ -215,17 +230,31 @@ def tambah_permohonan(
     jenis_surat: str,
     keperluan: str,
     no_wa_gampong: str,
-    file_pengantar_path: Optional[str],
+    file_pengantar_path: Optional[str] = None,
+    drive_link: Optional[str] = None,
+    nama_gampong_pengusul: Optional[str] = None,
+    keterangan: Optional[str] = None,
 ) -> int:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO permohonan
-                (nik, nama_pemohon, asal_gampong, jenis_surat, keperluan, no_wa_gampong, file_pengantar_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (nik, nama_pemohon, asal_gampong, jenis_surat, keperluan, no_wa_gampong, file_pengantar_path, drive_link, nama_gampong_pengusul, keterangan)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (nik, nama_pemohon, asal_gampong, jenis_surat, keperluan, no_wa_gampong, file_pengantar_path),
+            (
+                nik,
+                nama_pemohon,
+                asal_gampong,
+                jenis_surat,
+                keperluan,
+                no_wa_gampong,
+                file_pengantar_path,
+                drive_link,
+                nama_gampong_pengusul,
+                keterangan,
+            ),
         )
         conn.commit()
         return cursor.lastrowid
