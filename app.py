@@ -137,18 +137,11 @@ def render_operator_registration() -> None:
             file_bytes = photo_file.getbuffer()
             try:
                 import storage
-
-                if storage.is_r2_configured():
-                    key = f"operator_{username}_{photo_file.name}"
-                    try:
-                        url = storage.upload_bytes(file_bytes, key)
-                        photo_path = url
-                    except Exception:
-                        local_path = UPLOADS_DIR / f"operator_{username}_{photo_file.name}"
-                        with open(local_path, "wb") as f:
-                            f.write(file_bytes)
-                        photo_path = str(local_path)
-                else:
+                key = f"operator_{username}_{photo_file.name}"
+                try:
+                    url = storage.upload_bytes(file_bytes, key)
+                    photo_path = url
+                except Exception:
                     local_path = UPLOADS_DIR / f"operator_{username}_{photo_file.name}"
                     with open(local_path, "wb") as f:
                         f.write(file_bytes)
@@ -316,19 +309,11 @@ def render_loket_gampong_tab() -> None:
                     file_bytes = file_pengantar.getbuffer()
                     try:
                         import storage
-
-                        if storage.is_r2_configured():
-                            key = f"pengantar_{nik}_{file_pengantar.name}"
-                            try:
-                                url = storage.upload_bytes(file_bytes, key)
-                                file_pengantar_path = url
-                            except Exception:
-                                file_name = f"pengantar_{nik}_{file_pengantar.name}"
-                                local_path = UPLOADS_DIR / file_name
-                                with open(local_path, "wb") as f:
-                                    f.write(file_bytes)
-                                file_pengantar_path = str(local_path)
-                        else:
+                        key = f"pengantar_{nik}_{file_pengantar.name}"
+                        try:
+                            url = storage.upload_bytes(file_bytes, key)
+                            file_pengantar_path = url
+                        except Exception:
                             file_name = f"pengantar_{nik}_{file_pengantar.name}"
                             local_path = UPLOADS_DIR / file_name
                             with open(local_path, "wb") as f:
@@ -447,19 +432,12 @@ def render_meja_pelayanan_tab() -> None:
                             file_bytes = file_tte.getbuffer()
                             try:
                                 import storage
-
-                                if storage.is_r2_configured():
-                                    key = f"tte_{item['id']}_{file_tte.name}"
-                                    try:
-                                        url = storage.upload_bytes(file_bytes, key)
-                                        database.update_status_selesai_tte(item['id'], url)
-                                    except Exception:
-                                        # fallback to local storage on upload failure
-                                        tte_path = TTE_DOCS_DIR / f"tte_{item['id']}_{file_tte.name}"
-                                        with open(tte_path, "wb") as f:
-                                            f.write(file_bytes)
-                                        database.update_status_selesai_tte(item['id'], str(tte_path))
-                                else:
+                                key = f"tte_{item['id']}_{file_tte.name}"
+                                try:
+                                    url = storage.upload_bytes(file_bytes, key)
+                                    database.update_status_selesai_tte(item['id'], url)
+                                except Exception:
+                                    # fallback to local storage on upload failure
                                     tte_path = TTE_DOCS_DIR / f"tte_{item['id']}_{file_tte.name}"
                                     with open(tte_path, "wb") as f:
                                         f.write(file_bytes)
