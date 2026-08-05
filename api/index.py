@@ -43,7 +43,15 @@ def parse_body(body: Optional[str]) -> dict:
 
 def handler(event, context):
     """Vercel Serverless Function handler."""
-    path = event.get("path", "/")
+    path = event.get("path", "/") or "/"
+    # Normalize paths for Vercel rewrites and function destination paths.
+    # Examples: /api/login -> /login, /api/index.py -> /, /api/index.py/login -> /login
+    if path.startswith("/api/index.py"):
+        path = path[len("/api/index.py"):] or "/"
+    elif path.startswith("/api/"):
+        path = path[4:] or "/"
+    elif path == "/api":
+        path = "/"
     method = event.get("httpMethod", "GET")
     body_str = event.get("body", "")
     query_params = event.get("queryStringParameters") or {}

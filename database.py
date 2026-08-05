@@ -2,6 +2,7 @@ import os
 import secrets
 import sqlite3
 import string
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from sqlite3 import Connection
@@ -13,7 +14,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_FILE = str(BASE_DIR / "sijuang.db")
+DEFAULT_DB_FILE = Path(os.environ.get("DATABASE_FILE", BASE_DIR / "sijuang.db"))
+if DEFAULT_DB_FILE.parent.exists() and os.access(DEFAULT_DB_FILE.parent, os.W_OK):
+    DB_FILE = str(DEFAULT_DB_FILE)
+else:
+    TMP_DIR = Path(os.environ.get("TMPDIR", tempfile.gettempdir()))
+    DB_FILE = str(TMP_DIR / "sijuang.db")
 
 
 def hash_password(password: str) -> str:
