@@ -24,6 +24,8 @@ Jika Anda ingin menggunakan Supabase untuk file/storage atau database eksternal,
 - `SUPABASE_URL`
 - `SUPABASE_KEY`
 - `SUPABASE_BUCKET`
+  - Contoh: jika bucket di Supabase Anda bernama `dokumen`, maka gunakan `SUPABASE_BUCKET=dokumen`.
+- Pilih `Environment` di Vercel: `Production and Preview` (recommended) atau `Production`.
 
 Atau untuk Cloudflare R2:
 
